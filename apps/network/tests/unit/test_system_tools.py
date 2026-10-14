@@ -44,7 +44,7 @@ async def test_get_site_settings_returns_timezone_connectivity_and_ntp(monkeypat
 
 @pytest.mark.asyncio
 async def test_network_health_preserves_vpn_diagnostics(monkeypatch):
-    from unifi_network_mcp.tools import system
+    from unifi_network_mcp import runtime
 
     vpn = {
         "subsystem": "vpn",
@@ -60,6 +60,10 @@ async def test_network_health_preserves_vpn_diagnostics(monkeypatch):
     mgr = MagicMock()
     mgr._connection.site = "default"
     mgr.get_network_health = AsyncMock(return_value=[vpn, {"subsystem": "wan", "status": "ok"}])
+    monkeypatch.setattr(runtime, "system_manager", mgr)
+    from unifi_network_mcp.tools import system
+
+    # The module may already be cached by another test in the suite.
     monkeypatch.setattr(system, "system_manager", mgr)
 
     result = await system.get_network_health()
