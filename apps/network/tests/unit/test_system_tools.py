@@ -44,26 +44,25 @@ async def test_get_site_settings_returns_timezone_connectivity_and_ntp(monkeypat
 
 @pytest.mark.asyncio
 async def test_network_health_preserves_vpn_diagnostics(monkeypatch):
-    from unifi_network_mcp import runtime
+    from unifi_network_mcp.tools import system
 
     vpn = {
         "subsystem": "vpn",
         "status": "error",
+        "site_to_site_enabled": True,
         "site_to_site_num_active": 0,
         "site_to_site_num_inactive": 2,
         "site_to_site_rx_bytes": 0,
         "site_to_site_tx_bytes": 4096,
+        "remote_user_enabled": False,
         "remote_user_num_active": 1,
+        "remote_user_num_inactive": 0,
         "remote_user_rx_bytes": 2048,
         "remote_user_tx_bytes": 0,
     }
     mgr = MagicMock()
     mgr._connection.site = "default"
     mgr.get_network_health = AsyncMock(return_value=[vpn, {"subsystem": "wan", "status": "ok"}])
-    monkeypatch.setattr(runtime, "system_manager", mgr)
-    from unifi_network_mcp.tools import system
-
-    # The module may already be cached by another test in the suite.
     monkeypatch.setattr(system, "system_manager", mgr)
 
     result = await system.get_network_health()
@@ -73,4 +72,5 @@ async def test_network_health_preserves_vpn_diagnostics(monkeypatch):
     for key, value in vpn.items():
         assert result["health_summary"][0][key] == value
     assert result["health_summary"][1]["site_to_site_num_active"] is None
+    assert result["health_summary"][1]["site_to_site_enabled"] is None
     mgr.get_network_health.assert_awaited_once_with()
